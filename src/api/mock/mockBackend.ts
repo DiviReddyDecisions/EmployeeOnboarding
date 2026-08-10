@@ -184,7 +184,7 @@ export const mockBackend = {
         ? {
             ...doc,
             Status: status as typeof doc.Status,
-            FileName: fileName ?? doc.FileName,
+            FileName: fileName ?? doc.FileName ?? null,
             UpdatedOn: nowIso(),
           }
         : doc,
@@ -200,8 +200,8 @@ export const mockBackend = {
         ? {
             ...sig,
             Status: status as typeof sig.Status,
-            SentOn: status === "Sent" ? nowIso() : sig.SentOn,
-            CompletedOn: status === "Signed" ? nowIso() : sig.CompletedOn,
+            SentOn: status === "Sent" ? nowIso() : (sig.SentOn ?? null),
+            CompletedOn: status === "Signed" ? nowIso() : (sig.CompletedOn ?? null),
           }
         : sig,
     );
@@ -216,7 +216,7 @@ export const mockBackend = {
         ? {
             ...task,
             Status: status as typeof task.Status,
-            CompletedOn: status === "Complete" ? nowIso() : task.CompletedOn,
+            CompletedOn: status === "Complete" ? nowIso() : (task.CompletedOn ?? null),
             BlockedReason: status === "Blocked" ? (reason ?? "Blocked") : null,
           }
         : task,
