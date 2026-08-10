@@ -27,7 +27,7 @@ export function clearAuthToken(): void {
 export function getAuthToken(): string | null {
   if (typeof document === "undefined") return null;
   const match = document.cookie.match(new RegExp(`(?:^|; )${COOKIE_NAME}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
 export function redirectToLogin(): void {
