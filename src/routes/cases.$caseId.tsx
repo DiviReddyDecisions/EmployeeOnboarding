@@ -99,7 +99,7 @@ function CaseDetailPage() {
                       <span className="font-medium">{item.ApproverRole}</span>
                       <span className="block text-xs text-muted-foreground">{item.ApproverName}</span>
                     </span>
-                    <span className="text-xs text-muted-foreground">{item.Decision ?? "Pending"}</span>
+                    <span className="text-xs text-muted-foreground">{item.Status}</span>
                   </li>
                 ))}
               </ul>
@@ -129,8 +129,10 @@ function CaseDetailPage() {
                 {data.Tasks.map((item) => (
                   <li key={item.Id} className="flex items-center justify-between px-4 py-3">
                     <span>
-                      {item.Title}
-                      <span className="block text-xs text-muted-foreground">{item.AssignedToName}</span>
+                      {item.Name}
+                      <span className="block text-xs text-muted-foreground">
+                        {item.Team} · {item.AssigneeName}
+                      </span>
                     </span>
                     <span className="text-xs text-muted-foreground">{item.Status}</span>
                   </li>
@@ -144,11 +146,11 @@ function CaseDetailPage() {
           <Card>
             <CardContent className="p-0">
               <ul className="divide-y divide-border text-sm">
-                {data.History.map((item) => (
+                {data.AuditEvents.map((item) => (
                   <li key={item.Id} className="px-4 py-3">
-                    <span className="font-medium">{item.Action}</span>
+                    <span className="font-medium">{item.EventType}</span>
                     <span className="block text-xs text-muted-foreground">
-                      {item.ActorName} · {formatDate(item.OccurredOn)}
+                      {item.Actor} · {formatDate(item.OccurredOn)} — {item.Detail}
                     </span>
                   </li>
                 ))}
