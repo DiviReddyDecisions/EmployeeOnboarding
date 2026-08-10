@@ -1,0 +1,195 @@
+import { useMemo, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckSquare } from "lucide-react";
+
+import { OnboardingCaseUpdateTask } from "@/api/apiclient";
+import { casesQueryOptions, onboardingCaseKeys } from "@/api/stores/OnboardingCaseStore";
+import { currentUserQueryOptions } from "@/api/userInfoStore";
+import type { OnboardingCase, OperationalTask } from "@/api/types/OnboardingCase";
+import { PageHeader } from "@/components/app/AppShell";
+import { EmptyState, ErrorState, TableSkeleton } from "@/components/app/DataStates";
+import { StatusPill, TaskBadge } from "@/components/app/StatusBadges";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { employeeName, formatDate, slaState } from "@/lib/case-utils";
+
+export const Route = createFileRoute("/tasks")({
+  head: () => ({
+    meta: [
+      { title: "My tasks | Employee Onboarding" },
+      {
+        name: "description",
+        content:
+          "Operational onboarding tasks by team and assignee — start, complete or unblock provisioning work.",
+      },
+      { property: "og:title", content: "My tasks | Employee Onboarding" },
+      {
+        property: "og:description",
+        content: "Operational preparation tasks with due dates, teams and completion actions.",
+      },
+    ],
+  }),
+  component: TasksPage,
+});
+
+type TaskEntry = { item: OnboardingCase; task: OperationalTask };
+
+function TaskRow({ entry }: { entry: TaskEntry }) {
+  const queryClient = useQueryClient();
+  const update = useMutation({
+    mutationFn: (status: string) =>
+      OnboardingCaseUpdateTask(entry.item.Id, entry.task.Id, status),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: onboardingCaseKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+
+  const state = slaState(entry.task.DueOn, entry.task.Status === "Complete");
+
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-foreground">{entry.task.Name}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {entry.task.Team} · {entry.task.AssigneeName} · due {formatDate(entry.task.DueOn)} ·{" "}
+          <Link
+            to="/cases/$caseId"
+            params={{ caseId: entry.item.Id }}
+            className="hover:underline"
+          >
+            {entry.item.CaseNumber} — {employeeName(entry.item)}
+          </Link>
+        </p>
+        {entry.task.BlockedReason ? (
+          <p className="mt-1 text-xs text-destructive">Blocked: {entry.task.BlockedReason}</p>
+        ) : null}
+      </div>
+      <div className="flex items-center gap-2">
+        {state === "Overdue" ? <StatusPill label="Overdue" tone="danger" /> : null}
+        {state === "DueSoon" ? <StatusPill label="Due soon" tone="warning" /> : null}
+        <TaskBadge status={entry.task.Status} />
+        {entry.task.Status === "NotStarted" ? (
+          <Button size="sm" variant="outline" disabled={update.isPending} onClick={() => update.mutate("InProgress")}>
+            Start
+          </Button>
+        ) : null}
+        {entry.task.Status !== "Complete" && entry.task.Status !== "Cancelled" ? (
+          <Button size="sm" disabled={update.isPending} onClick={() => update.mutate("Complete")}>
+            Complete
+          </Button>
+        ) : null}
+      </div>
+    </li>
+  );
+}
+
+function TasksPage() {
+  const cases = useQuery(casesQueryOptions);
+  const user = useQuery(currentUserQueryOptions);
+  const [team, setTeam] = useState("all");
+  const [scope, setScope] = useState<"mine" | "open" | "all">("mine");
+
+  const entries = useMemo<TaskEntry[]>(() => {
+    const all: TaskEntry[] = [];
+    for (const item of cases.data ?? []) {
+      for (const task of item.Tasks) all.push({ item, task });
+    }
+    return all.sort((a, b) => (a.task.DueOn ?? "").localeCompare(b.task.DueOn ?? ""));
+  }, [cases.data]);
+
+  const teams = useMemo(
+    () => Array.from(new Set(entries.map((entry) => entry.task.Team))).sort(),
+    [entries],
+  );
+
+  const visible = entries.filter((entry) => {
+    if (team !== "all" && entry.task.Team !== team) return false;
+    if (scope === "mine") {
+      return (
+        entry.task.AssigneeName === user.data?.DisplayName &&
+        entry.task.Status !== "Complete" &&
+        entry.task.Status !== "Cancelled"
+      );
+    }
+    if (scope === "open") {
+      return entry.task.Status !== "Complete" && entry.task.Status !== "Cancelled";
+    }
+    return true;
+  });
+
+  return (
+    <>
+      <PageHeader
+        title="My tasks"
+        description="Operational preparation work generated by Decisions for each onboarding case."
+      />
+
+      <Card className="mb-4 p-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <p className="mb-1 text-xs font-medium text-muted-foreground">Scope</p>
+            <Select value={scope} onValueChange={(value) => setScope(value as typeof scope)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mine">Assigned to me (open)</SelectItem>
+                <SelectItem value="open">All open tasks</SelectItem>
+                <SelectItem value="all">All tasks</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <p className="mb-1 text-xs font-medium text-muted-foreground">Team</p>
+            <Select value={team} onValueChange={setTeam}>
+              <SelectTrigger>
+                <SelectValue placeholder="All teams" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All teams</SelectItem>
+                {teams.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {value}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <CardContent className="p-0">
+          {cases.isPending ? (
+            <TableSkeleton columns={4} />
+          ) : cases.isError ? (
+            <ErrorState description="Tasks could not be loaded." onRetry={() => void cases.refetch()} />
+          ) : visible.length === 0 ? (
+            <div className="p-4">
+              <EmptyState
+                icon={<CheckSquare className="size-5" aria-hidden />}
+                title="No tasks in this view"
+                description="Change the scope or team filter to see other operational onboarding tasks."
+              />
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {visible.map((entry) => (
+                <TaskRow key={`${entry.item.Id}-${entry.task.Id}`} entry={entry} />
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+    </>
+  );
+}
