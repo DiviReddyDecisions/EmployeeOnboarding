@@ -10,7 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApprovalsRouteImport } from './routes/approvals'
 import { Route as CasesRouteRouteImport } from './routes/cases.route'
+import { Route as ExceptionsRouteImport } from './routes/exceptions'
+import { Route as ReferenceRouteImport } from './routes/reference'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as CasesIndexRouteImport } from './routes/cases.index'
 import { Route as CasesCaseIdRouteImport } from './routes/cases.$caseId'
 import { Route as CasesNewRouteImport } from './routes/cases.new'
@@ -20,9 +25,34 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApprovalsRoute = ApprovalsRouteImport.update({
+  id: '/approvals',
+  path: '/approvals',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CasesRouteRoute = CasesRouteRouteImport.update({
   id: '/cases',
   path: '/cases',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExceptionsRoute = ExceptionsRouteImport.update({
+  id: '/exceptions',
+  path: '/exceptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReferenceRoute = ReferenceRouteImport.update({
+  id: '/reference',
+  path: '/reference',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TasksRoute = TasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CasesIndexRoute = CasesIndexRouteImport.update({
@@ -44,12 +74,22 @@ const CasesNewRoute = CasesNewRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/cases': typeof CasesRouteRouteWithChildren
+  '/approvals': typeof ApprovalsRoute
+  '/exceptions': typeof ExceptionsRoute
+  '/reference': typeof ReferenceRoute
+  '/reports': typeof ReportsRoute
+  '/tasks': typeof TasksRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
   '/cases/new': typeof CasesNewRoute
   '/cases/': typeof CasesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/approvals': typeof ApprovalsRoute
+  '/exceptions': typeof ExceptionsRoute
+  '/reference': typeof ReferenceRoute
+  '/reports': typeof ReportsRoute
+  '/tasks': typeof TasksRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
   '/cases/new': typeof CasesNewRoute
   '/cases': typeof CasesIndexRoute
@@ -58,21 +98,61 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/cases': typeof CasesRouteRouteWithChildren
+  '/approvals': typeof ApprovalsRoute
+  '/exceptions': typeof ExceptionsRoute
+  '/reference': typeof ReferenceRoute
+  '/reports': typeof ReportsRoute
+  '/tasks': typeof TasksRoute
   '/cases/$caseId': typeof CasesCaseIdRoute
   '/cases/new': typeof CasesNewRoute
   '/cases/': typeof CasesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/cases' | '/cases/$caseId' | '/cases/new' | '/cases/'
+  fullPaths:
+    | '/'
+    | '/cases'
+    | '/approvals'
+    | '/exceptions'
+    | '/reference'
+    | '/reports'
+    | '/tasks'
+    | '/cases/$caseId'
+    | '/cases/new'
+    | '/cases/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/cases/$caseId' | '/cases/new' | '/cases'
-  id: '__root__' | '/' | '/cases' | '/cases/$caseId' | '/cases/new' | '/cases/'
+  to:
+    | '/'
+    | '/approvals'
+    | '/exceptions'
+    | '/reference'
+    | '/reports'
+    | '/tasks'
+    | '/cases/$caseId'
+    | '/cases/new'
+    | '/cases'
+  id:
+    | '__root__'
+    | '/'
+    | '/cases'
+    | '/approvals'
+    | '/exceptions'
+    | '/reference'
+    | '/reports'
+    | '/tasks'
+    | '/cases/$caseId'
+    | '/cases/new'
+    | '/cases/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CasesRouteRoute: typeof CasesRouteRouteWithChildren
+  ApprovalsRoute: typeof ApprovalsRoute
+  ExceptionsRoute: typeof ExceptionsRoute
+  ReferenceRoute: typeof ReferenceRoute
+  ReportsRoute: typeof ReportsRoute
+  TasksRoute: typeof TasksRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -84,11 +164,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/approvals': {
+      id: '/approvals'
+      path: '/approvals'
+      fullPath: '/approvals'
+      preLoaderRoute: typeof ApprovalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cases': {
       id: '/cases'
       path: '/cases'
       fullPath: '/cases'
       preLoaderRoute: typeof CasesRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/exceptions': {
+      id: '/exceptions'
+      path: '/exceptions'
+      fullPath: '/exceptions'
+      preLoaderRoute: typeof ExceptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reference': {
+      id: '/reference'
+      path: '/reference'
+      fullPath: '/reference'
+      preLoaderRoute: typeof ReferenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tasks': {
+      id: '/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof TasksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cases/': {
@@ -134,6 +249,11 @@ const CasesRouteRouteWithChildren = CasesRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CasesRouteRoute: CasesRouteRouteWithChildren,
+  ApprovalsRoute: ApprovalsRoute,
+  ExceptionsRoute: ExceptionsRoute,
+  ReferenceRoute: ReferenceRoute,
+  ReportsRoute: ReportsRoute,
+  TasksRoute: TasksRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
