@@ -37,7 +37,7 @@ export const Route = createFileRoute("/approvals")({
 
 type PendingApproval = { item: OnboardingCase; approval: ApprovalItem };
 
-function SlaPill({ dueOn }: { dueOn?: string | null }) {
+function SlaPill({ dueOn }: { dueOn?: string | null | undefined }) {
   const state = slaState(dueOn);
   if (state === "NotApplicable") return null;
   const tone = state === "Overdue" ? "danger" : state === "DueSoon" ? "warning" : "success";
@@ -147,7 +147,7 @@ function ApprovalsPage() {
 
   const isMine = (entry: PendingApproval) =>
     entry.approval.ApproverName === user.data?.DisplayName ||
-    (user.data?.Roles ?? []).includes(entry.approval.ApproverRole);
+    ((user.data?.Roles ?? []) as string[]).includes(entry.approval.ApproverRole);
 
   const visible = mineOnly ? pending.filter(isMine) : pending;
 

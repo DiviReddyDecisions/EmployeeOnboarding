@@ -30,7 +30,7 @@ export const Route = createFileRoute("/reports")({
   component: ReportsPage,
 });
 
-function BarList({ rows, unit }: { rows: ReportRow[]; unit?: string }) {
+function BarList({ rows, unit }: { rows: ReportRow[]; unit?: string | undefined }) {
   const max = Math.max(1, ...rows.map((row) => row.Value));
   return (
     <ul className="space-y-3">
@@ -60,15 +60,13 @@ function ReportCard({
   title,
   rows,
   unit,
-  className,
 }: {
   title: string;
   rows: ReportRow[];
-  unit?: string;
-  className?: string;
+  unit?: string | undefined;
 }) {
   return (
-    <Card className={className}>
+    <Card>
       <CardHeader>
         <CardTitle className="text-sm">{title}</CardTitle>
       </CardHeader>
