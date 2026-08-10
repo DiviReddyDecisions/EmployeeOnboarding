@@ -1,0 +1,340 @@
+{
+  "version": "1.0.0",
+  "appName": "Employee Onboarding",
+  "namespace": "EmployeeOnboarding",
+  "generatedFor": "Decisions Custom Web App",
+  "baseUrl": {
+    "portalBase": "VITE_DEC_PORTAL_BASE",
+    "projectApiBase": "VITE_DEC_PROJECT_API_BASE_URL",
+    "auth": "Bearer JWT on every request (Authorization header)"
+  },
+  "caseStructures": [
+    {
+      "name": "EmployeeOnboarding.OnboardingCase",
+      "purpose": "Authoritative record of one employee onboarding instance across all stages.",
+      "fields": [
+        { "name": "Id", "type": "String (GUID)", "required": true, "source": "System", "purpose": "Primary key." },
+        { "name": "CaseNumber", "type": "String", "required": true, "validation": "Pattern ONB-#####", "source": "Flow: GenerateCaseNumber", "purpose": "Human reference." },
+        { "name": "Stage", "type": "Enum CaseStage", "required": true, "source": "Workflow", "purpose": "Current workflow stage." },
+        { "name": "Status", "type": "Enum CaseStatus", "required": true, "source": "Workflow", "purpose": "Lifecycle status." },
+        { "name": "Employee", "type": "EmployeeInfo", "required": true, "source": "HR Specialist input", "purpose": "Person being onboarded." },
+        { "name": "Employment", "type": "EmploymentInfo", "required": true, "source": "HR Specialist input + reference data", "purpose": "Role, org placement, start date." },
+        { "name": "Compensation", "type": "CompensationInfo", "required": false, "source": "HR Specialist input", "purpose": "Drives approval routing thresholds." },
+        { "name": "RequirementsPlan", "type": "RequirementsPlan", "required": false, "source": "Flow: DetermineRequirements", "purpose": "Computed requirement set for the case." },
+        { "name": "ValidationIssues", "type": "List<ValidationIssue>", "required": true, "source": "Rule set: ValidateCase", "purpose": "Blocking and advisory data problems." },
+        { "name": "Approvals", "type": "List<ApprovalItem>", "required": true, "source": "Flow: BuildApprovalChain", "purpose": "Sequenced approval chain." },
+        { "name": "Documents", "type": "List<DocumentRequirement>", "required": true, "source": "Flow: DetermineRequirements", "purpose": "Generated and supplied documents." },
+        { "name": "Signatures", "type": "List<SignatureRequest>", "required": true, "source": "Flow: RequestSignatures", "purpose": "E-signature envelopes." },
+        { "name": "Tasks", "type": "List<OperationalTask>", "required": true, "source": "Flow: CreateOperationalTasks", "purpose": "IT/Facilities/Payroll provisioning work." },
+        { "name": "Checks", "type": "List<ComplianceCheck>", "required": true, "source": "Flow: DetermineRequirements", "purpose": "Compliance/background checks." },
+        { "name": "Notifications", "type": "List<NotificationRecord>", "required": true, "source": "Flow: SendNotification", "purpose": "Outbound message log." },
+        { "name": "AuditEvents", "type": "List<AuditEvent>", "required": true, "source": "All action flows", "purpose": "Immutable audit trail." },
+        { "name": "Comments", "type": "List<Comment>", "required": true, "source": "Flow: AddComment", "purpose": "Case collaboration." },
+        { "name": "Exception", "type": "CaseException", "required": false, "source": "Exception handling flows", "purpose": "Current blocking exception." },
+        { "name": "OwnerName", "type": "String", "required": true, "source": "Account service", "purpose": "Responsible HR owner." },
+        { "name": "CreatedOn", "type": "DateTime", "required": true, "source": "System" },
+        { "name": "UpdatedOn", "type": "DateTime", "required": true, "source": "System" },
+        { "name": "SubmittedOn", "type": "DateTime", "required": false, "source": "Flow: Submit" },
+        { "name": "CompletedOn", "type": "DateTime", "required": false, "source": "Flow: Complete" },
+        { "name": "DueOn", "type": "DateTime", "required": false, "source": "Rule: SLA calculation", "purpose": "Case-level SLA target." }
+      ]
+    },
+    {
+      "name": "EmployeeOnboarding.EmployeeInfo",
+      "fields": [
+        { "name": "FirstName", "type": "String", "required": true, "validation": "1-50 chars" },
+        { "name": "LastName", "type": "String", "required": true, "validation": "1-50 chars" },
+        { "name": "PreferredName", "type": "String", "required": false },
+        { "name": "PersonalEmail", "type": "String", "required": true, "validation": "Email format, unique per open case" },
+        { "name": "Phone", "type": "String", "required": false, "validation": "E.164 recommended" },
+        { "name": "Country", "type": "String", "required": true, "validation": "Must match a Location country" },
+        { "name": "ExistingRecordId", "type": "String", "required": false, "purpose": "Set by duplicate detection rule." }
+      ]
+    },
+    {
+      "name": "EmployeeOnboarding.EmploymentInfo",
+      "fields": [
+        { "name": "PositionId", "type": "String", "required": true, "validation": "Must exist in Positions" },
+        { "name": "PositionTitle", "type": "String", "required": true, "source": "Reference data" },
+        { "name": "DepartmentId", "type": "String", "required": true },
+        { "name": "DepartmentName", "type": "String", "required": true, "source": "Reference data" },
+        { "name": "ManagerId", "type": "String", "required": true, "validation": "Manager department must match case department" },
+        { "name": "ManagerName", "type": "String", "required": true, "source": "Reference data" },
+        { "name": "LocationId", "type": "String", "required": true },
+        { "name": "LocationName", "type": "String", "required": true, "source": "Reference data" },
+        { "name": "EmploymentType", "type": "Enum EmploymentType", "required": true },
+        { "name": "StartDate", "type": "Date", "required": true, "validation": "Must be today or later at submission" }
+      ]
+    },
+    {
+      "name": "EmployeeOnboarding.CompensationInfo",
+      "fields": [
+        { "name": "BaseSalary", "type": "Decimal", "required": true, "validation": "> 0" },
+        { "name": "Currency", "type": "String", "required": true, "validation": "ISO 4217" },
+        { "name": "PayFrequency", "type": "Enum", "required": true },
+        { "name": "BonusEligible", "type": "Boolean", "required": true },
+        { "name": "BonusPercent", "type": "Decimal", "required": false, "validation": "Required when BonusEligible = true; 0-100" }
+      ]
+    },
+    {
+      "name": "EmployeeOnboarding.RequirementsPlan",
+      "fields": [
+        { "name": "DeterminedOn", "type": "DateTime", "required": true },
+        { "name": "RequiredApprovalRoles", "type": "List<String>", "required": true },
+        { "name": "RequiredDocumentTypes", "type": "List<String>", "required": true },
+        { "name": "RequiredSignatureDocumentTypes", "type": "List<String>", "required": true },
+        { "name": "RequiredCheckTypes", "type": "List<String>", "required": true },
+        { "name": "RequiredTaskTypes", "type": "List<String>", "required": true },
+        { "name": "Rationale", "type": "List<String>", "required": true, "purpose": "Explains which rule added each requirement." }
+      ]
+    },
+    {
+      "name": "EmployeeOnboarding.ApprovalItem",
+      "fields": [
+        { "name": "Id", "type": "String", "required": true },
+        { "name": "Sequence", "type": "Int", "required": true },
+        { "name": "ApproverRole", "type": "String", "required": true },
+        { "name": "ApproverName", "type": "String", "required": true },
+        { "name": "Status", "type": "Enum ApprovalStatus", "required": true },
+        { "name": "DueOn", "type": "DateTime", "required": false },
+        { "name": "DecidedOn", "type": "DateTime", "required": false },
+        { "name": "Comments", "type": "String", "required": false, "validation": "Required for RequestChanges and Reject" }
+      ]
+    },
+    {
+      "name": "EmployeeOnboarding.DocumentRequirement",
+      "fields": [
+        { "name": "Id", "type": "String", "required": true },
+        { "name": "DocumentType", "type": "String", "required": true },
+        { "name": "Name", "type": "String", "required": true },
+        { "name": "Required", "type": "Boolean", "required": true },
+        { "name": "Source", "type": "Enum Generated|Supplied", "required": true },
+        { "name": "Status", "type": "Enum DocumentStatus", "required": true },
+        { "name": "FileName", "type": "String", "required": false },
+        { "name": "UploadedBy", "type": "String", "required": false },
+        { "name": "UpdatedOn", "type": "DateTime", "required": false },
+        { "name": "ReviewNotes", "type": "String", "required": false }
+      ]
+    },
+    {
+      "name": "EmployeeOnboarding.SignatureRequest",
+      "fields": [
+        { "name": "Id", "type": "String", "required": true },
+        { "name": "DocumentId", "type": "String", "required": true },
+        { "name": "DocumentName", "type": "String", "required": true },
+        { "name": "SignerName", "type": "String", "required": true },
+        { "name": "SignerEmail", "type": "String", "required": true },
+        { "name": "Status", "type": "Enum SignatureStatus", "required": true },
+        { "name": "SentOn", "type": "DateTime", "required": false },
+        { "name": "CompletedOn", "type": "DateTime", "required": false },
+        { "name": "DeclineReason", "type": "String", "required": false }
+      ]
+    },
+    {
+      "name": "EmployeeOnboarding.OperationalTask",
+      "fields": [
+        { "name": "Id", "type": "String", "required": true },
+        { "name": "TaskType", "type": "String", "required": true },
+        { "name": "Name", "type": "String", "required": true },
+        { "name": "Team", "type": "String", "required": true },
+        { "name": "AssigneeName", "type": "String", "required": true },
+        { "name": "Status", "type": "Enum TaskStatus", "required": true },
+        { "name": "DueOn", "type": "DateTime", "required": false },
+        { "name": "CompletedOn", "type": "DateTime", "required": false },
+        { "name": "BlockedReason", "type": "String", "required": false, "validation": "Required when Status = Blocked" }
+      ]
+    },
+    {
+      "name": "EmployeeOnboarding.ComplianceCheck",
+      "fields": [
+        { "name": "Id", "type": "String", "required": true },
+        { "name": "CheckType", "type": "String", "required": true },
+        { "name": "Name", "type": "String", "required": true },
+        { "name": "Status", "type": "Enum CheckStatus", "required": true },
+        { "name": "CompletedOn", "type": "DateTime", "required": false },
+        { "name": "Notes", "type": "String", "required": false }
+      ]
+    },
+    {
+      "name": "EmployeeOnboarding.NotificationRecord",
+      "fields": [
+        { "name": "Id", "type": "String", "required": true },
+        { "name": "Template", "type": "String", "required": true },
+        { "name": "Subject", "type": "String", "required": true },
+        { "name": "Recipient", "type": "String", "required": true },
+        { "name": "Channel", "type": "Enum NotificationChannel", "required": true },
+        { "name": "SentOn", "type": "DateTime", "required": true },
+        { "name": "Status", "type": "Enum Sent|Failed|Queued", "required": true }
+      ]
+    },
+    {
+      "name": "EmployeeOnboarding.AuditEvent",
+      "fields": [
+        { "name": "Id", "type": "String", "required": true },
+        { "name": "EventType", "type": "String", "required": true },
+        { "name": "Actor", "type": "String", "required": true },
+        { "name": "OccurredOn", "type": "DateTime", "required": true },
+        { "name": "Detail", "type": "String", "required": true }
+      ]
+    },
+    {
+      "name": "EmployeeOnboarding.CaseException",
+      "fields": [
+        { "name": "Type", "type": "Enum ExceptionType", "required": true },
+        { "name": "Reason", "type": "String", "required": true },
+        { "name": "RaisedOn", "type": "DateTime", "required": true },
+        { "name": "RaisedBy", "type": "String", "required": true },
+        { "name": "Resolvable", "type": "Boolean", "required": true }
+      ]
+    }
+  ],
+  "enumerations": {
+    "CaseStage": ["Draft", "Validation", "RequirementsDetermination", "Approvals", "Documents", "Signatures", "OperationalPreparation", "FinalReview", "Completed"],
+    "CaseStatus": ["Draft", "InProgress", "ChangesRequired", "OnHold", "Rejected", "Cancelled", "Failed", "Completed"],
+    "ApprovalStatus": ["Pending", "Approved", "ChangesRequested", "Rejected", "Skipped"],
+    "DocumentStatus": ["NotStarted", "Generating", "AwaitingUpload", "InReview", "Complete", "Rejected"],
+    "SignatureStatus": ["NotSent", "Sent", "Viewed", "Signed", "Declined", "Expired"],
+    "TaskStatus": ["NotStarted", "InProgress", "Blocked", "Complete", "Cancelled"],
+    "CheckStatus": ["NotStarted", "InProgress", "Passed", "Failed", "Waived"],
+    "ExceptionType": ["ChangesRequired", "Rejected", "Cancelled", "OnHold", "Overdue", "Failure"],
+    "EmploymentType": ["FullTime", "PartTime", "Contract", "Intern"],
+    "NotificationChannel": ["Email", "InApp", "SMS"],
+    "SlaState": ["OnTrack", "DueSoon", "Overdue", "NotApplicable"],
+    "AppRole": ["HRSpecialist", "HRManager", "Approver", "TaskAssignee", "Signer", "Auditor"]
+  },
+  "apiInventory": [
+    { "name": "AccountService/GetCurrentAccount", "method": "GET", "path": "/REST/AccountService/GetCurrentAccount", "purpose": "Identify the signed-in account.", "consumer": "App shell / AuthGate", "response": "{ GetCurrentAccountResult: DecisionsAccount }" },
+    { "name": "EmployeeOnboarding/GetCurrentUserRoles", "method": "POST", "path": "/restapi/employeeonboarding/onboarding/getcurrentuserroles", "purpose": "Resolve app roles from Decisions groups.", "consumer": "App shell", "request": "{}", "response": "{ Done: AppRole[] }" },
+    { "name": "OnboardingCase/GetAll", "method": "GET", "path": "/REST/OnboardingCaseCaseDataService/GetAll", "purpose": "Case list.", "consumer": "Dashboard, Cases, Approvals, Tasks, Exceptions", "response": "OnboardingCase[]" },
+    { "name": "OnboardingCase/GetById", "method": "GET", "path": "/REST/OnboardingCaseCaseDataService/GetById?id=<id>", "purpose": "Case detail.", "consumer": "Case detail", "response": "OnboardingCase" },
+    { "name": "EmployeeOnboarding/SaveDraft", "method": "POST", "path": "/restapi/employeeonboarding/onboarding/savedraft", "purpose": "Persist a draft without validation gating.", "consumer": "New case", "request": "{ Request: OnboardingCaseInput }", "response": "{ Done: OnboardingCase }" },
+    { "name": "EmployeeOnboarding/Create", "method": "POST", "path": "/restapi/employeeonboarding/onboarding/create", "purpose": "Create and submit a case.", "consumer": "New case", "request": "{ Request: OnboardingCaseInput }", "response": "{ Done: OnboardingCase }" },
+    { "name": "EmployeeOnboarding/Submit", "method": "POST", "path": "/restapi/employeeonboarding/onboarding/submit", "purpose": "Submit an existing draft into Validation.", "consumer": "Case detail", "request": "{ CaseId }", "response": "{ Done: OnboardingCase }" },
+    { "name": "EmployeeOnboarding/Approve", "method": "POST", "path": "/restapi/employeeonboarding/onboarding/approve", "purpose": "Record an approval decision.", "consumer": "Approvals, Case detail", "request": "{ CaseId, ApprovalId, Comments }", "response": "{ Done: OnboardingCase }" },
+    { "name": "EmployeeOnboarding/RequestChanges", "method": "POST", "path": "/restapi/employeeonboarding/onboarding/requestchanges", "purpose": "Return the case to HR for corrections.", "consumer": "Approvals, Case detail", "request": "{ CaseId, ApprovalId, Comments }", "response": "{ Done: OnboardingCase }" },
+    { "name": "EmployeeOnboarding/Reject", "method": "POST", "path": "/restapi/employeeonboarding/onboarding/reject", "purpose": "Terminate the case as rejected.", "consumer": "Approvals, Case detail", "request": "{ CaseId, ApprovalId, Comments }", "response": "{ Done: OnboardingCase }" },
+    { "name": "EmployeeOnboarding/UpdateDocument", "method": "POST", "path": "/restapi/employeeonboarding/onboarding/updatedocument", "purpose": "Advance a document requirement.", "consumer": "Case detail", "request": "{ CaseId, DocumentId, Status, FileName }", "response": "{ Done: OnboardingCase }" },
+    { "name": "EmployeeOnboarding/UpdateSignature", "method": "POST", "path": "/restapi/employeeonboarding/onboarding/updatesignature", "purpose": "Advance a signature request.", "consumer": "Case detail", "request": "{ CaseId, SignatureId, Status }", "response": "{ Done: OnboardingCase }" },
+    { "name": "EmployeeOnboarding/UpdateTask", "method": "POST", "path": "/restapi/employeeonboarding/onboarding/updatetask", "purpose": "Start, block or complete an operational task.", "consumer": "Tasks, Case detail", "request": "{ CaseId, TaskId, Status, Reason }", "response": "{ Done: OnboardingCase }" },
+    { "name": "EmployeeOnboarding/Complete", "method": "POST", "path": "/restapi/employeeonboarding/onboarding/complete", "purpose": "Final HR review sign-off.", "consumer": "Case detail", "request": "{ CaseId }", "response": "{ Done: OnboardingCase }" },
+    { "name": "EmployeeOnboarding/ChangeStatus", "method": "POST", "path": "/restapi/employeeonboarding/onboarding/changestatus", "purpose": "Hold, resume or cancel a case.", "consumer": "Case detail, Exceptions", "request": "{ CaseId, Status, Reason }", "response": "{ Done: OnboardingCase }" },
+    { "name": "EmployeeOnboarding/AddComment", "method": "POST", "path": "/restapi/employeeonboarding/onboarding/addcomment", "purpose": "Append a case comment.", "consumer": "Case detail", "request": "{ CaseId, Text }", "response": "{ Done: OnboardingCase }" },
+    { "name": "EmployeeOnboarding/GetReferenceData", "method": "POST", "path": "/restapi/employeeonboarding/onboarding/getreferencedata", "purpose": "Master data for pickers and matrices.", "consumer": "New case, Reference data", "request": "{}", "response": "{ Done: ReferenceData }" },
+    { "name": "EmployeeOnboarding/GetDashboardKpis", "method": "POST", "path": "/restapi/employeeonboarding/onboarding/getdashboardkpis", "purpose": "Dashboard KPI tiles.", "consumer": "Dashboard, Reports", "request": "{}", "response": "{ Done: KpiSummary }" },
+    { "name": "EmployeeOnboarding/GetStageCounts", "method": "POST", "path": "/restapi/employeeonboarding/onboarding/getstagecounts", "purpose": "Pipeline distribution by stage.", "consumer": "Dashboard, Reports", "request": "{}", "response": "{ Done: StageCount[] }" },
+    { "name": "EmployeeOnboarding/GetReports", "method": "POST", "path": "/restapi/employeeonboarding/onboarding/getreports", "purpose": "Aging, turnaround, throughput and SLA breach reports.", "consumer": "Reports", "request": "{}", "response": "{ Done: ReportSet }" }
+  ],
+  "flows": [
+    { "name": "EmployeeOnboarding/ValidateCase", "trigger": "Submit", "purpose": "Run the validation rule set and populate ValidationIssues." },
+    { "name": "EmployeeOnboarding/DetermineRequirements", "trigger": "Validation passed", "purpose": "Compute RequirementsPlan and materialise approvals, documents, checks and tasks." },
+    { "name": "EmployeeOnboarding/BuildApprovalChain", "trigger": "DetermineRequirements", "purpose": "Expand the approval matrix into sequenced ApprovalItems with SLA due dates." },
+    { "name": "EmployeeOnboarding/GenerateDocuments", "trigger": "Approvals complete", "purpose": "Produce Generated documents from templates." },
+    { "name": "EmployeeOnboarding/RequestSignatures", "trigger": "Documents complete", "purpose": "Create signature envelopes for signature-required document types." },
+    { "name": "EmployeeOnboarding/CreateOperationalTasks", "trigger": "Signatures complete", "purpose": "Assign provisioning tasks to IT, Facilities, Payroll." },
+    { "name": "EmployeeOnboarding/SendNotification", "trigger": "Any stage or status change", "purpose": "Send templated notifications and log NotificationRecord." },
+    { "name": "EmployeeOnboarding/EscalateOverdue", "trigger": "Scheduled (hourly)", "purpose": "Escalate overdue approvals and tasks, raise Overdue exceptions." },
+    { "name": "EmployeeOnboarding/WriteAuditEvent", "trigger": "Every action endpoint", "purpose": "Append immutable AuditEvent." }
+  ],
+  "rules": [
+    { "name": "Rule.RequiredFields", "expression": "All required Employee/Employment fields present", "outcome": "Error issue per missing field" },
+    { "name": "Rule.StartDateNotPast", "expression": "Employment.StartDate >= Today", "outcome": "Error issue" },
+    { "name": "Rule.StartDateLeadTime", "expression": "Employment.StartDate - Today < 10 days", "outcome": "Warning issue; case flagged expedited" },
+    { "name": "Rule.DuplicateEmployee", "expression": "PersonalEmail matches an open case or employee record", "outcome": "Warning issue; ExistingRecordId set" },
+    { "name": "Rule.ManagerInDepartment", "expression": "Manager.DepartmentId = Employment.DepartmentId", "outcome": "Error issue" },
+    { "name": "Rule.BonusPercentRequired", "expression": "BonusEligible = true implies BonusPercent > 0", "outcome": "Error issue" },
+    { "name": "Rule.ExecutiveApproval", "expression": "BaseSalary > 150000 or PositionTitle contains 'Director'", "outcome": "Add HR Director + Finance approvals" },
+    { "name": "Rule.BackgroundCheckRequired", "expression": "Position.RequiresBackgroundCheck = true", "outcome": "Add BackgroundCheck to RequiredCheckTypes" },
+    { "name": "Rule.ContractorDocuments", "expression": "EmploymentType = Contract", "outcome": "Swap offer letter for contractor agreement; skip payroll enrolment task" },
+    { "name": "Rule.InternationalCompliance", "expression": "Employee.Country <> Location.Country", "outcome": "Add WorkAuthorisation check and immigration document" },
+    { "name": "Rule.RemoteEquipment", "expression": "LocationName contains 'Remote'", "outcome": "Add ShipEquipment task instead of DeskSetup" }
+  ],
+  "workflow": {
+    "stages": ["Draft", "Validation", "RequirementsDetermination", "Approvals", "Documents", "Signatures", "OperationalPreparation", "FinalReview", "Completed"],
+    "transitions": [
+      { "from": "Draft", "to": "Validation", "trigger": "Submit", "guard": "Draft owner" },
+      { "from": "Validation", "to": "RequirementsDetermination", "trigger": "No Error issues" },
+      { "from": "Validation", "to": "Draft", "trigger": "Error issues present", "effect": "Status = ChangesRequired" },
+      { "from": "RequirementsDetermination", "to": "Approvals", "trigger": "RequirementsPlan produced" },
+      { "from": "Approvals", "to": "Documents", "trigger": "All approvals Approved or Skipped" },
+      { "from": "Approvals", "to": "Draft", "trigger": "RequestChanges", "effect": "Status = ChangesRequired" },
+      { "from": "Approvals", "to": "Approvals", "trigger": "Reject", "effect": "Status = Rejected; exception raised" },
+      { "from": "Documents", "to": "Signatures", "trigger": "All required documents Complete" },
+      { "from": "Signatures", "to": "OperationalPreparation", "trigger": "All signatures Signed" },
+      { "from": "OperationalPreparation", "to": "FinalReview", "trigger": "All tasks Complete or Cancelled and all checks Passed or Waived" },
+      { "from": "FinalReview", "to": "Completed", "trigger": "Complete", "guard": "HRManager role" },
+      { "from": "*", "to": "*", "trigger": "ChangeStatus", "effect": "Status = OnHold | InProgress | Cancelled" }
+    ]
+  },
+  "tasks": [
+    { "type": "IT_ACCOUNT", "team": "IT", "dueOffsetDays": -3 },
+    { "type": "IT_HARDWARE", "team": "IT", "dueOffsetDays": -5 },
+    { "type": "DESK_SETUP", "team": "Facilities", "dueOffsetDays": -2 },
+    { "type": "SHIP_EQUIPMENT", "team": "Facilities", "dueOffsetDays": -7 },
+    { "type": "BADGE", "team": "Security", "dueOffsetDays": -1 },
+    { "type": "PAYROLL_ENROL", "team": "Payroll", "dueOffsetDays": -4 },
+    { "type": "BENEFITS_ENROL", "team": "HR", "dueOffsetDays": 5 },
+    { "type": "ORIENTATION", "team": "HR", "dueOffsetDays": 1 }
+  ],
+  "approvals": {
+    "matrixSource": "GetReferenceData.ApprovalMatrix",
+    "columns": ["Condition", "ApproverRole", "Sequence", "SlaHours"],
+    "sequential": true,
+    "commentsRequiredFor": ["RequestChanges", "Reject"]
+  },
+  "documents": [
+    { "code": "OFFER_LETTER", "source": "Generated", "requiresSignature": true },
+    { "code": "CONTRACTOR_AGREEMENT", "source": "Generated", "requiresSignature": true },
+    { "code": "NDA", "source": "Generated", "requiresSignature": true },
+    { "code": "POLICY_ACK", "source": "Generated", "requiresSignature": true },
+    { "code": "ID_PROOF", "source": "Supplied", "requiresSignature": false },
+    { "code": "TAX_FORM", "source": "Supplied", "requiresSignature": false },
+    { "code": "WORK_AUTH", "source": "Supplied", "requiresSignature": false }
+  ],
+  "signatures": {
+    "provider": "External e-signature integration invoked by EmployeeOnboarding/RequestSignatures",
+    "statuses": ["NotSent", "Sent", "Viewed", "Signed", "Declined", "Expired"],
+    "reminderCadenceHours": 48,
+    "expiryDays": 14
+  },
+  "notifications": [
+    { "template": "CaseSubmitted", "recipient": "HR owner", "channel": "Email", "trigger": "Submit" },
+    { "template": "ApprovalRequested", "recipient": "Current approver", "channel": "Email + InApp", "trigger": "Approval becomes current" },
+    { "template": "ChangesRequested", "recipient": "HR owner", "channel": "Email", "trigger": "RequestChanges" },
+    { "template": "CaseRejected", "recipient": "HR owner, manager", "channel": "Email", "trigger": "Reject" },
+    { "template": "SignatureRequest", "recipient": "Signer", "channel": "Email", "trigger": "Signature sent" },
+    { "template": "SignatureReminder", "recipient": "Signer", "channel": "Email", "trigger": "48h unsigned" },
+    { "template": "TaskAssigned", "recipient": "Assignee team", "channel": "Email + InApp", "trigger": "Task created" },
+    { "template": "TaskOverdue", "recipient": "Assignee + team lead", "channel": "Email", "trigger": "Past DueOn" },
+    { "template": "CaseCompleted", "recipient": "HR owner, manager, employee", "channel": "Email", "trigger": "Complete" }
+  ],
+  "sla": {
+    "approvalHours": "From ApprovalMatrix.SlaHours (default 24)",
+    "documentHours": 48,
+    "signatureHours": 72,
+    "taskDue": "StartDate + TaskTemplate.DefaultDueOffsetDays",
+    "dueSoonThresholdHours": 24,
+    "escalation": ["Reminder at 50% of SLA", "Escalate to HR Manager at breach", "Raise Overdue exception at breach + 24h"]
+  },
+  "auditEvents": [
+    "CaseCreated", "DraftSaved", "CaseSubmitted", "ValidationCompleted", "RequirementsDetermined",
+    "ApprovalApproved", "ApprovalChangesRequested", "ApprovalRejected", "DocumentStatusChanged",
+    "SignatureStatusChanged", "TaskStatusChanged", "CheckStatusChanged", "StatusChanged",
+    "CommentAdded", "NotificationSent", "CaseCompleted", "SlaEscalated"
+  ],
+  "reports": [
+    { "name": "StageAging", "measure": "Average days in stage" },
+    { "name": "ApprovalTurnaround", "measure": "Average hours to decision by role" },
+    { "name": "TaskCompletionByTeam", "measure": "Completed vs open tasks per team" },
+    { "name": "CycleTimeByDepartment", "measure": "Average days submit to complete" },
+    { "name": "SlaBreaches", "measure": "Breach count by item type" }
+  ],
+  "backendDependencies": [
+    "Decisions account service and group-based role assignment",
+    "OnboardingCase Case Data Service (GetAll / GetById / SaveOrCreate)",
+    "Document template engine for generated documents",
+    "E-signature provider integration",
+    "SMTP / notification provider",
+    "Scheduled job host for EscalateOverdue",
+    "HRIS or employee directory for duplicate detection and reference data"
+  ]
+}
