@@ -10,43 +10,60 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CasesRouteRouteImport } from './routes/cases.route'
 import { Route as CasesIndexRouteImport } from './routes/cases.index'
+import { Route as CasesNewRouteImport } from './routes/cases.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CasesIndexRoute = CasesIndexRouteImport.update({
-  id: '/cases/',
-  path: '/cases/',
+const CasesRouteRoute = CasesRouteRouteImport.update({
+  id: '/cases',
+  path: '/cases',
   getParentRoute: () => rootRouteImport,
+} as any)
+const CasesIndexRoute = CasesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CasesRouteRoute,
+} as any)
+const CasesNewRoute = CasesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => CasesRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/cases': typeof CasesRouteRouteWithChildren
+  '/cases/new': typeof CasesNewRoute
   '/cases/': typeof CasesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/cases/new': typeof CasesNewRoute
   '/cases': typeof CasesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/cases': typeof CasesRouteRouteWithChildren
+  '/cases/new': typeof CasesNewRoute
   '/cases/': typeof CasesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/cases/'
+  fullPaths: '/' | '/cases' | '/cases/new' | '/cases/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/cases'
-  id: '__root__' | '/' | '/cases/'
+  to: '/' | '/cases/new' | '/cases'
+  id: '__root__' | '/' | '/cases' | '/cases/new' | '/cases/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CasesIndexRoute: typeof CasesIndexRoute
+  CasesRouteRoute: typeof CasesRouteRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -58,19 +75,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cases': {
+      id: '/cases'
+      path: '/cases'
+      fullPath: '/cases'
+      preLoaderRoute: typeof CasesRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cases/': {
       id: '/cases/'
-      path: '/cases'
+      path: '/'
       fullPath: '/cases/'
       preLoaderRoute: typeof CasesIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof CasesRouteRoute
+    }
+    '/cases/new': {
+      id: '/cases/new'
+      path: '/new'
+      fullPath: '/cases/new'
+      preLoaderRoute: typeof CasesNewRouteImport
+      parentRoute: typeof CasesRouteRoute
     }
   }
 }
 
+interface CasesRouteRouteChildren {
+  CasesNewRoute: typeof CasesNewRoute
+  CasesIndexRoute: typeof CasesIndexRoute
+}
+
+const CasesRouteRouteChildren: CasesRouteRouteChildren = {
+  CasesNewRoute: CasesNewRoute,
+  CasesIndexRoute: CasesIndexRoute,
+}
+
+const CasesRouteRouteWithChildren = CasesRouteRoute._addFileChildren(
+  CasesRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CasesIndexRoute: CasesIndexRoute,
+  CasesRouteRoute: CasesRouteRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
