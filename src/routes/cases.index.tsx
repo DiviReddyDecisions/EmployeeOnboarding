@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { employeeName, formatDate } from "@/lib/case-utils";
 
-export const Route = createFileRoute("/cases")({
+export const Route = createFileRoute("/cases/")({
   head: () => ({
     meta: [
       { title: "Onboarding cases | Employee Onboarding" },
